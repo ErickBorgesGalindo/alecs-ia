@@ -1,5 +1,7 @@
 from ai.llm import ask_llm
 from tools.registry import get_tool
+from utils.tool_parser import parse_tool_response
+
 import tools.open_browser
 import tools.system
 
@@ -12,28 +14,22 @@ class AlecsIA:
 
         self.system_prompt = {
             "role": "system",
-            "content": "You are AlecsIA, a personal AI assistant."
+            "content": """
+You are AlecsIA, a personal assistant.
+
+If the user asks to perform an action like opening a website,
+respond ONLY in JSON like this:
+
+{
+ "tool": "open_browser",
+ "args": {
+   "url": "https://example.com"
+ }
+}
+"""
         }
 
-    def handle_command(self, text):
-
-        if text.startswith("abre "):
-
-            target = text.replace("abre ", "")
-
-            tool = get_tool("open_browser")
-
-            return tool(f"https://{target}.com")
-
-        return None
-
-
     def chat(self, user_input):
-
-        tool_response = self.handle_command(user_input)
-
-        if tool_response:
-            return tool_response
 
         self.history.append({
             "role": "user",
@@ -43,6 +39,23 @@ class AlecsIA:
         messages = [self.system_prompt] + self.history
 
         response = ask_llm(messages)
+
+        tool_call = parse_tool_response(response)
+
+        if tool_call:
+
+            tool_name = tool_call["tool"]
+            args = tool_call.get("args", {})
+
+            tool = get_tool(tool_name)
+
+            if tool:
+                result = tool(**args)
+
+                return f"Tool executed: {result}"
+
+            else:
+                return "Tool not found."
 
         self.history.append({
             "role": "assistant",
