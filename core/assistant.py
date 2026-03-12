@@ -1,4 +1,8 @@
 from ai.llm import ask_llm
+from tools.registry import get_tool
+import tools.open_browser
+import tools.system
+
 
 class AlecsIA:
 
@@ -8,10 +12,28 @@ class AlecsIA:
 
         self.system_prompt = {
             "role": "system",
-            "content": "You are AlecsIA, a personal AI assistant created by Alecs."
+            "content": "You are AlecsIA, a personal AI assistant."
         }
 
+    def handle_command(self, text):
+
+        if text.startswith("abre "):
+
+            target = text.replace("abre ", "")
+
+            tool = get_tool("open_browser")
+
+            return tool(f"https://{target}.com")
+
+        return None
+
+
     def chat(self, user_input):
+
+        tool_response = self.handle_command(user_input)
+
+        if tool_response:
+            return tool_response
 
         self.history.append({
             "role": "user",
