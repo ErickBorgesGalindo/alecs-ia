@@ -1,6 +1,7 @@
 from ai.llm import ask_llm
 from tools.registry import get_tool
 from utils.tool_parser import parse_tool_response
+from utils.tool_prompt import generate_tool_prompt
 
 import tools.open_browser
 import tools.system
@@ -12,23 +13,29 @@ class AlecsIA:
 
         self.history = []
 
+        tools_description = generate_tool_prompt()
+
         self.system_prompt = {
             "role": "system",
-            "content": """
+            "content": f"""
 You are AlecsIA, a personal assistant.
 
-If the user asks to perform an action like opening a website,
-respond ONLY in JSON like this:
+You can use tools to perform actions.
 
-{
+{tools_description}
+
+If you need to use a tool respond ONLY in JSON.
+
+Example:
+
+{{
  "tool": "open_browser",
- "args": {
-   "url": "https://example.com"
- }
-}
+ "args": {{
+   "url": "https://github.com"
+ }}
+}}
 """
         }
-
     def chat(self, user_input):
 
         self.history.append({

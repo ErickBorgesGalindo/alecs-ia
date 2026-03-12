@@ -1,12 +1,16 @@
 import subprocess
 from tools.registry import register_tool
 
+
 def run_command(command):
 
-    try:
-        subprocess.Popen(command, shell=True)
-        return f"Running command: {command}"
-    except Exception as e:
-        return str(e)
+    subprocess.Popen(command, shell=True)
 
-register_tool("run_command", run_command)
+    return f"Running command: {command}"
+
+
+register_tool(
+    "run_command",
+    run_command,
+    "Runs a system command. Argument: command"
+)
