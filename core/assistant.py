@@ -16,26 +16,34 @@ class AlecsIA:
         tools_description = generate_tool_prompt()
 
         self.system_prompt = {
-            "role": "system",
-            "content": f"""
+    "role": "system",
+    "content": f"""
 You are AlecsIA, a personal assistant.
 
 You can use tools to perform actions.
 
 {tools_description}
 
-If you need to use a tool respond ONLY in JSON.
+If you use a tool you MUST wait for the result.
 
-Example:
+After receiving the tool result you MUST respond normally
+to the user explaining what happened.
+
+Only use a tool once per request.
+
+Tool format:
 
 {{
- "tool": "open_browser",
- "args": {{
-   "url": "https://github.com"
- }}
+ "tool": "tool_name",
+ "args": {{ }}
 }}
+IMPORTANT:
+
+When calling a tool respond ONLY with JSON.
+Do not include explanations.
 """
         }
+
     def chat(self, user_input):
 
         self.history.append({
@@ -49,24 +57,37 @@ Example:
 
         tool_call = parse_tool_response(response)
 
-        if tool_call:
+        if not tool_call:
 
-            tool_name = tool_call["tool"]
-            args = tool_call.get("args", {})
+            self.history.append({
+                "role": "assistant",
+                "content": response
+            })
 
-            tool = get_tool(tool_name)
+            return response
 
-            if tool:
-                result = tool(**args)
+        tool_name = tool_call["tool"]
+        args = tool_call.get("args", {})
 
-                return f"Tool executed: {result}"
+        tool = get_tool(tool_name)
 
-            else:
-                return "Tool not found."
+        if not tool:
+            return "Tool not found."
+
+        result = tool(**args)
 
         self.history.append({
             "role": "assistant",
-            "content": response
+            "content": f"Tool result: {result}"
         })
 
-        return response
+        messages = [self.system_prompt] + self.history
+
+        final_response = ask_llm(messages)
+
+        self.history.append({
+            "role": "assistant",
+            "content": final_response
+        })
+
+        return final_response
